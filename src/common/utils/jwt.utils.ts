@@ -2,12 +2,19 @@ import crypto from "crypto";
 import jwt, { JsonWebTokenError, JwtPayload } from "jsonwebtoken";
 import { Response } from "express";
 import ApiError from "./api-error";
-import ApiResponse from "./api-response";
 
 interface Payload {
   id: string;
   email: string;
   role: "customer" | "seller" | "admin";
+};
+
+declare global {
+  interface JwtPayload {
+    id: string;
+    email: string;
+    role: "customer"
+  }
 }
 
 export function generateAccessToken(payload: Payload): string {
@@ -30,7 +37,7 @@ export function generateRefreshToken(payload: { id: string }): string {
   );
 }
 
-export function verifyAccessToken(res: Response, token: string) {
+export function verifyAccessToken(token: string): JwtPayload | string | undefined {
   try {
     return jwt.verify(token, process.env.JWT_ACCESSTOKEN_SECRET!);
   } catch (err: unknown) {

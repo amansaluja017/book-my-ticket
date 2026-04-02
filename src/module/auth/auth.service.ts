@@ -14,6 +14,7 @@ import {
   forgotPasswordMail,
   verificationMail,
 } from "../../common/nodemailer/emails";
+import { email } from "zod/mini";
 
 interface RegisterCutomer {
   firstName: string;
@@ -48,7 +49,6 @@ export const registerCustomerService = async (
   const hashedPassword = await bcrypt.hash(password, 10);
 
   const { rawToken, hashedToken } = generateResetToken();
-  console.log("rawToken", rawToken);
 
   const [user] = await db
     .insert(usersTable)
@@ -67,7 +67,10 @@ export const registerCustomerService = async (
   sendMail(
     email,
     "Verify your email",
-    verificationMail(`${firstName} ${lastName}`, ""),
+    verificationMail(
+      `${firstName} ${lastName}`,
+      `http://localhost:3000/customer/verify/${rawToken}`,
+    ),
   ).catch(console.log);
 
   return user;
@@ -93,7 +96,11 @@ export const verifyCustomerService = async (data: {
 
 export const loginCustomerService = async (
   data: Pick<RegisterCutomer, "email" | "password">,
-): Promise<Record<string, unknown>> => {
+): Promise<{
+  user: Record<string, unknown>;
+  accessToken: string;
+  refreshToken: string;
+}> => {
   const { email, password } = data;
 
   const [user] = await db
@@ -104,11 +111,15 @@ export const loginCustomerService = async (
       password: usersTable.password,
       role: usersTable.role,
       id: usersTable.id,
+      isVerified: usersTable.isVerified,
     })
     .from(usersTable)
     .where(eq(usersTable.email, email));
 
   if (!user) throw ApiError.unauthorized("email or password is incorrect");
+
+  if (!user.isVerified)
+    throw ApiError.badRequest("Please verify you email first!");
 
   const comparePassword = await bcrypt.compare(password, user.password);
 
@@ -135,6 +146,9 @@ export const loginCustomerService = async (
       isVerified: usersTable.isVerified,
     });
 
+  if (!updatedUser)
+    throw ApiError.internalError("Internal Error: Failed to login user");
+
   return { user: updatedUser, accessToken, refreshToken };
 };
 
@@ -145,7 +159,7 @@ export const logoutCustomerService = async (
 
   const [user] = await db
     .update(usersTable)
-    .set({ refreshToken: null })
+    .set({ refreshToken: null, logoutAt: new Date(Date.now()) })
     .where(eq(usersTable.id, id))
     .returning();
 
@@ -181,6 +195,22 @@ export const refreshCustomerService = async (data: {
   return { accessToken: newAccessToken, refreshToken: newRefreshToken };
 };
 
+export const customerProfileService = async (data: CustomerTypes): Promise<Record<string, unknown>> => {
+  const { id } = data;
+  
+  const [user] = await db.select({
+    id: usersTable.id,
+    email: usersTable.email,
+    isVerified: usersTable.isVerified,
+    firstName: usersTable.firstName,
+    lastName: usersTable.lastName
+  }).from(usersTable).where(eq(usersTable.id, id));
+  
+  if (!user) throw ApiError.notFound();
+  
+  return user;
+};
+
 export const forgotPasswordService = async (data: {
   email: string;
 }): Promise<void> => {
@@ -199,11 +229,13 @@ export const forgotPasswordService = async (data: {
 
   if (!user) throw ApiError.notFound("Invalid email id");
 
-  console.log(rawToken);
   sendMail(
     email,
     "Forgot password",
-    forgotPasswordMail(`${user.firstName} ${user.lastName}`, ""),
+    forgotPasswordMail(
+      `${user.firstName} ${user.lastName}`,
+      `http://localhost:3000/customer/new-password/${rawToken}`,
+    ),
   ).catch(console.log);
 };
 

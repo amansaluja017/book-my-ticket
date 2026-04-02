@@ -9,6 +9,7 @@ import {
   refreshCustomerService,
   forgotPasswordService,
   newPasswordService,
+  customerProfileService,
 } from "./auth.service";
 
 export const registerCustomer = async (req: Request, res: Response) => {
@@ -30,7 +31,7 @@ export const verifyCustomer = async (
 };
 
 export const loginCustomer = async (req: Request, res: Response) => {
-  if (req.customer?.id) throw ApiError.badRequest("You are already logged in");
+  if (req.cookies?.refreshToken) throw ApiError.badRequest("You are already logged in");
   
   const { user, accessToken, refreshToken } = await loginCustomerService(
     req.body,
@@ -42,7 +43,6 @@ export const loginCustomer = async (req: Request, res: Response) => {
   ApiResponse.ok(res, "user login successfully", {
     user,
     accessToken,
-    refreshToken,
   });
 };
 
@@ -61,8 +61,15 @@ export const refreshCustomer = async (req: Request, res: Response) => {
   res.cookie("refreshToken", refreshToken);
   ApiResponse.ok(res, "Token generated successfully", {
     accessToken,
-    refreshToken,
   });
+};
+
+export const customerProfile = async (req: Request, res: Response) => {
+  if (!req.customer) throw ApiError.unauthorized("You are not authorized, login first!");
+  
+  const user = await customerProfileService(req.customer);
+  
+  ApiResponse.ok(res, "user fetch successfully", user);
 };
 
 export const forgotPassword = async (req: Request, res: Response) => {
