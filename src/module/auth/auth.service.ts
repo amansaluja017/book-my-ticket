@@ -14,7 +14,6 @@ import {
   forgotPasswordMail,
   verificationMail,
 } from "../../common/nodemailer/emails";
-import { email } from "zod/mini";
 
 interface RegisterCutomer {
   firstName: string;
@@ -58,6 +57,7 @@ export const registerCustomerService = async (
       email,
       password: hashedPassword,
       verificationToken: hashedToken,
+      verificationTokenExpiry: new Date(Date.now() + 30 * 60 * 1000),
     })
     .returning({ id: usersTable.id });
 
@@ -85,13 +85,17 @@ export const verifyCustomerService = async (data: {
 
   const hashed = generateHashtoken(token);
 
-  const [user] = await db
+  const [user] = await db.select({ verificationTokenExpiry: usersTable.verificationTokenExpiry, id: usersTable.id }).from(usersTable).where(eq(usersTable.verificationToken, hashed));
+
+  if (!user || user.verificationTokenExpiry! < new Date()) throw ApiError.badRequest("Token is invalid or expires");
+
+  const [updatedUser] = await db
     .update(usersTable)
-    .set({ isVerified: true, verificationToken: null })
-    .where(eq(usersTable.verificationToken, hashed))
+    .set({ isVerified: true, verificationToken: null, verificationTokenExpiry: null })
+    .where(eq(usersTable.id, user.id))
     .returning();
 
-  if (!user) throw ApiError.badRequest("Token is invalid");
+  if (!updatedUser) throw ApiError.internalError("Internal Error: Failed to verify the user, please try after some time!")
 };
 
 export const loginCustomerService = async (
@@ -195,19 +199,24 @@ export const refreshCustomerService = async (data: {
   return { accessToken: newAccessToken, refreshToken: newRefreshToken };
 };
 
-export const customerProfileService = async (data: CustomerTypes): Promise<Record<string, unknown>> => {
+export const customerProfileService = async (
+  data: CustomerTypes,
+): Promise<Record<string, unknown>> => {
   const { id } = data;
-  
-  const [user] = await db.select({
-    id: usersTable.id,
-    email: usersTable.email,
-    isVerified: usersTable.isVerified,
-    firstName: usersTable.firstName,
-    lastName: usersTable.lastName
-  }).from(usersTable).where(eq(usersTable.id, id));
-  
+
+  const [user] = await db
+    .select({
+      id: usersTable.id,
+      email: usersTable.email,
+      isVerified: usersTable.isVerified,
+      firstName: usersTable.firstName,
+      lastName: usersTable.lastName,
+    })
+    .from(usersTable)
+    .where(eq(usersTable.id, id));
+
   if (!user) throw ApiError.notFound();
-  
+
   return user;
 };
 

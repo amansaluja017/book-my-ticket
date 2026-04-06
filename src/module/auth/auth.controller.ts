@@ -31,8 +31,9 @@ export const verifyCustomer = async (
 };
 
 export const loginCustomer = async (req: Request, res: Response) => {
-  if (req.cookies?.refreshToken) throw ApiError.badRequest("You are already logged in");
-  
+  if (req.cookies?.refreshToken)
+    throw ApiError.badRequest("You are already logged in");
+
   const { user, accessToken, refreshToken } = await loginCustomerService(
     req.body,
   );
@@ -65,10 +66,11 @@ export const refreshCustomer = async (req: Request, res: Response) => {
 };
 
 export const customerProfile = async (req: Request, res: Response) => {
-  if (!req.customer) throw ApiError.unauthorized("You are not authorized, login first!");
-  
+  if (!req.customer)
+    throw ApiError.unauthorized("You are not authorized, login first!");
+
   const user = await customerProfileService(req.customer);
-  
+
   ApiResponse.ok(res, "user fetch successfully", user);
 };
 

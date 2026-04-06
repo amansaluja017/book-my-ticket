@@ -16,11 +16,11 @@ export const verifyJwt = async (
 ) => {
   // res.clearCookie("accessToken").clearCookie("refreshToken")
   if (!req.headers["authorization"]) return next();
-  
-  if (!req.headers["authorization"]?.startsWith("Bearer")) throw ApiError.unauthorized("You are not authorized!");
 
-  const token =
-    req.headers["authorization"]?.split(" ")[1];
+  if (!req.headers["authorization"]?.startsWith("Bearer"))
+    throw ApiError.unauthorized("You are not authorized!");
+
+  const token = req.headers["authorization"]?.split(" ")[1];
 
   if (!token) throw ApiError.unauthorized("You are not authorized!");
 
@@ -34,8 +34,13 @@ export const verifyJwt = async (
     .where(eq(usersTable.id, decoded.id));
 
   if (!user) throw ApiError.unauthorized("You are not authorized!");
-  
-  if (user.logoutAt && decoded.iat && (decoded.iat * 1000 < user.logoutAt.getTime())) throw ApiError.badRequest("Token is expired");
+
+  if (
+    user.logoutAt &&
+    decoded.iat &&
+    decoded.iat * 1000 < user.logoutAt.getTime()
+  )
+    throw ApiError.badRequest("Token is expired");
 
   req.customer = decoded;
   next();
