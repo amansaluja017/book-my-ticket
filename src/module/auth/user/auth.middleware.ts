@@ -1,20 +1,21 @@
 import { NextFunction, Request, Response } from "express";
-import ApiError from "../../common/utils/api-error";
-import { verifyAccessToken } from "../../common/utils/jwt.utils";
 import { CustomerTypes } from "./auth.service";
-import { db } from "../../db";
-import { usersTable } from "../../db/schema";
 import { eq } from "drizzle-orm";
 import { JwtPayload } from "jsonwebtoken";
+import ApiError from "../../../common/utils/api-error";
+import { verifyAccessToken } from "../../../common/utils/jwt.utils";
+import { db } from "../../../db";
+import { usersTable } from "../../../db/schema";
 
 type decodedTypes = JwtPayload & CustomerTypes;
 
 export const verifyJwt = async (
   req: Request,
-  _: Response,
+  res: Response,
   next: NextFunction,
 ) => {
   // res.clearCookie("accessToken").clearCookie("refreshToken")
+  // console.log(req.cookies);
   if (!req.headers["authorization"]) return next();
 
   if (!req.headers["authorization"]?.startsWith("Bearer"))

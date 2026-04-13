@@ -1,7 +1,7 @@
 import express from "express";
 import * as customerController from "./auth.controller";
-import validate from "../../common/middleware/dto.middleware";
-import * as authDto from "../dto/auth.dto";
+import validate from "../../../common/middleware/dto.middleware";
+import * as authDto from "../../dto/auth.dto";
 import { validateUserMiddleware } from "./auth.middleware";
 
 const router = express.Router();
@@ -11,7 +11,11 @@ router.post(
   validate(authDto.RegisterDto),
   customerController.registerCustomer,
 );
-router.post("/login", validate(authDto.LoginDto), customerController.loginCustomer);
+router.post(
+  "/login",
+  validate(authDto.LoginDto),
+  customerController.loginCustomer,
+);
 router.post("/verify/:token", customerController.verifyCustomer);
 router.get(
   "/logout",
@@ -33,6 +37,11 @@ router.get(
   "/profile",
   validateUserMiddleware,
   customerController.customerProfile,
+);
+router.get(
+  "/tickets",
+  validateUserMiddleware,
+  customerController.getCustomerTickets,
 );
 
 export default router;

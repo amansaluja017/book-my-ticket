@@ -1,6 +1,6 @@
 import { Response, Request } from "express";
-import ApiResponse from "../../common/utils/api-response";
-import ApiError from "../../common/utils/api-error";
+import ApiResponse from "../../../common/utils/api-response";
+import ApiError from "../../../common/utils/api-error";
 import {
   loginCustomerService,
   registerCustomerService,
@@ -10,6 +10,7 @@ import {
   forgotPasswordService,
   newPasswordService,
   customerProfileService,
+  getCustomerTicketsService,
 } from "./auth.service";
 
 export const registerCustomer = async (req: Request, res: Response) => {
@@ -48,7 +49,7 @@ export const loginCustomer = async (req: Request, res: Response) => {
 };
 
 export const logoutCustomer = async (req: Request, res: Response) => {
-  await logoutCustomerService(req.customer);
+  await logoutCustomerService(req.customer, req.cookies?.refreshToken as string);
 
   res.clearCookie("refreshToken");
   ApiResponse.ok(res, "user logout successfully!");
@@ -88,3 +89,9 @@ export const newPassword = async (
 
   ApiResponse.ok(res, "Password reset successfully");
 };
+
+export const getCustomerTickets = async (req: Request, res: Response) => {
+  const tickets = await getCustomerTicketsService(req.customer);
+  
+  ApiResponse.ok(res, "user tickets fetch successfully", tickets)
+}

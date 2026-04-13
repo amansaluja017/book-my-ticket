@@ -1,19 +1,28 @@
 import { eq } from "drizzle-orm";
-import { db } from "../../db";
-import { usersTable } from "../../db/schema";
-import ApiError from "../../common/utils/api-error";
+import { db } from "../../../db";
+import {
+  seatsTable,
+  seatStatusTable,
+  showsTable,
+  ticketTable,
+  tokensTable,
+  usersTable,
+} from "../../../db/schema";
+import ApiError from "../../../common/utils/api-error";
 import bcrypt from "bcrypt";
 import {
   generateAccessToken,
   generateRefreshToken,
   generateResetToken,
-} from "../../common/utils/jwt.utils";
+} from "../../../common/utils/jwt.utils";
 import crypto from "crypto";
-import sendMail from "../../common/nodemailer/nodemailer.config";
+import sendMail from "../../../common/nodemailer/nodemailer.config";
 import {
   forgotPasswordMail,
   verificationMail,
-} from "../../common/nodemailer/emails";
+} from "../../../common/nodemailer/emails";
+import { and } from "drizzle-orm";
+import { gt } from "drizzle-orm";
 
 interface RegisterCutomer {
   firstName: string;
@@ -56,13 +65,21 @@ export const registerCustomerService = async (
       lastName,
       email,
       password: hashedPassword,
-      verificationToken: hashedToken,
-      verificationTokenExpiry: new Date(Date.now() + 30 * 60 * 1000),
     })
     .returning({ id: usersTable.id });
 
   if (!user)
     throw ApiError.internalError("Internal Error: Failed to register user");
+
+  await db
+    .insert(tokensTable)
+    .values({
+      token: hashedToken,
+      tokenType: "verificationToken",
+      tokenExpiry: new Date(Date.now() + 15 * 60 * 1000),
+      userId: user?.id,
+    })
+    .returning();
 
   sendMail(
     email,
@@ -85,26 +102,42 @@ export const verifyCustomerService = async (data: {
 
   const hashed = generateHashtoken(token);
 
-  const [user] = await db.select({ verificationTokenExpiry: usersTable.verificationTokenExpiry, id: usersTable.id }).from(usersTable).where(eq(usersTable.verificationToken, hashed));
+  const [checkToken] = await db
+    .update(tokensTable)
+    .set({
+      isUsed: true,
+    })
+    .where(
+      and(
+        eq(tokensTable.tokenType, "verificationToken"),
+        eq(tokensTable.token, hashed),
+      ),
+    )
+    .returning({
+      verificationTokenExpiry: tokensTable.tokenExpiry,
+      userId: tokensTable.userId,
+    });
 
-  if (!user || user.verificationTokenExpiry! < new Date()) throw ApiError.badRequest("Token is invalid or expires");
+  if (!checkToken || checkToken.verificationTokenExpiry! < new Date())
+    throw ApiError.badRequest("Token is invalid or expires");
 
   const [updatedUser] = await db
     .update(usersTable)
-    .set({ isVerified: true, verificationToken: null, verificationTokenExpiry: null })
-    .where(eq(usersTable.id, user.id))
+    .set({
+      isVerified: true,
+    })
+    .where(eq(usersTable.id, checkToken.userId))
     .returning();
 
-  if (!updatedUser) throw ApiError.internalError("Internal Error: Failed to verify the user, please try after some time!")
+  if (!updatedUser)
+    throw ApiError.internalError(
+      "Internal Error: Failed to verify the user, please try after some time!",
+    );
 };
 
 export const loginCustomerService = async (
   data: Pick<RegisterCutomer, "email" | "password">,
-): Promise<{
-  user: Record<string, unknown>;
-  accessToken: string;
-  refreshToken: string;
-}> => {
+) => {
   const { email, password } = data;
 
   const [user] = await db
@@ -135,66 +168,93 @@ export const loginCustomerService = async (
     email: user.email,
     role: user.role,
   });
+
   const refreshToken = generateRefreshToken({ id: user.id });
 
-  const [updatedUser] = await db
-    .update(usersTable)
-    .set({ refreshToken: generateHashtoken(refreshToken) })
-    .where(eq(usersTable.email, email))
-    .returning({
-      id: usersTable.id,
-      firstName: usersTable.firstName,
-      lastName: usersTable.lastName,
-      email: usersTable.email,
-      role: usersTable.role,
-      isVerified: usersTable.isVerified,
-    });
+  const [token] = await db
+    .insert(tokensTable)
+    .values({
+      token: generateHashtoken(refreshToken),
+      tokenType: "refreshToken",
+      userId: user.id,
+    })
+    .returning();
 
-  if (!updatedUser)
+  if (!token)
     throw ApiError.internalError("Internal Error: Failed to login user");
 
-  return { user: updatedUser, accessToken, refreshToken };
+  return { user: user, accessToken, refreshToken };
 };
 
 export const logoutCustomerService = async (
   data: CustomerTypes,
+  refreshToken: string,
 ): Promise<void> => {
   const { id } = data;
 
   const [user] = await db
     .update(usersTable)
-    .set({ refreshToken: null, logoutAt: new Date(Date.now()) })
+    .set({ logoutAt: new Date(Date.now()) })
     .where(eq(usersTable.id, id))
     .returning();
 
   if (!user) throw ApiError.unauthorized("You are not authorized to do this!");
+
+  await db
+    .update(tokensTable)
+    .set({ isUsed: true })
+    .where(
+      and(
+        eq(tokensTable.userId, user.id),
+        eq(tokensTable.tokenType, "refreshToken"),
+        eq(tokensTable.isUsed, false),
+        eq(tokensTable.token, generateHashtoken(refreshToken)),
+      ),
+    )
+    .returning();
 };
 
 export const refreshCustomerService = async (data: {
   refreshToken: string;
-}): Promise<Record<string, string>> => {
+}) => {
   const { refreshToken } = data;
 
   if (!refreshToken) throw ApiError.badRequest("Invalid token!");
 
+  const [token] = await db
+    .update(tokensTable)
+    .set({ isUsed: true })
+    .where(
+      and(
+        eq(tokensTable.tokenType, "refreshToken"),
+        eq(tokensTable.isUsed, false),
+        eq(tokensTable.token, generateHashtoken(refreshToken)),
+      ),
+    )
+    .returning();
+
+  if (!token) throw ApiError.unauthorized("You are not authorized");
+
   const [user] = await db
     .select()
     .from(usersTable)
-    .where(eq(usersTable.refreshToken, generateHashtoken(refreshToken)));
+    .where(eq(usersTable.id, token.userId));
 
-  if (!user) throw ApiError.unauthorized("You are not authorized");
+  if (!user) throw ApiError.notFound("user not found");
 
   const newAccessToken = generateAccessToken({
     id: user.id,
     email: user.email,
     role: user.role,
   });
+
   const newRefreshToken = generateRefreshToken({ id: user.id });
 
-  await db
-    .update(usersTable)
-    .set({ refreshToken: generateHashtoken(newRefreshToken) })
-    .where(eq(usersTable.id, user.id));
+  await db.insert(tokensTable).values({
+    token: generateHashtoken(newRefreshToken),
+    userId: user.id,
+    tokenType: "refreshToken",
+  });
 
   return { accessToken: newAccessToken, refreshToken: newRefreshToken };
 };
@@ -228,15 +288,22 @@ export const forgotPasswordService = async (data: {
   const { rawToken, hashedToken } = generateResetToken();
 
   const [user] = await db
-    .update(usersTable)
-    .set({
-      passwordResetToken: hashedToken,
-      passwordResetExpiry: new Date(Date.now() + 15 * 60 * 1000),
+    .select({
+      id: usersTable.id,
+      firstName: usersTable.firstName,
+      lastName: usersTable.lastName,
     })
-    .where(eq(usersTable.email, email))
-    .returning();
+    .from(usersTable)
+    .where(eq(usersTable.email, email));
 
   if (!user) throw ApiError.notFound("Invalid email id");
+
+  await db.insert(tokensTable).values({
+    token: hashedToken,
+    tokenType: "passwordResetToken",
+    tokenExpiry: new Date(Date.now() + 15 * 60 * 1000),
+    userId: user.id,
+  });
 
   sendMail(
     email,
@@ -260,18 +327,23 @@ export const newPasswordService = async (
     throw ApiError.badRequest("new and confirm password are not equal");
 
   try {
-    const [user] = await db
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.passwordResetToken, generateHashtoken(token)));
+    const [checkToken] = await db
+      .update(tokensTable)
+      .set({
+        isUsed: true,
+        tokenExpiry: null,
+      })
+      .where(
+        and(
+          eq(tokensTable.tokenType, "passwordResetToken"),
+          eq(tokensTable.isUsed, false),
+          eq(tokensTable.token, generateHashtoken(token)),
+          gt(tokensTable.tokenExpiry, new Date()),
+        ),
+      )
+      .returning();
 
-    if (!user)
-      throw ApiError.unauthorized(
-        "You are not authenticated to do this action",
-      );
-
-    if (user.passwordResetExpiry! < new Date())
-      throw ApiError.badRequest("Token expires");
+    if (!checkToken) throw ApiError.badRequest("Token is invalid or expires");
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
@@ -279,14 +351,31 @@ export const newPasswordService = async (
       .update(usersTable)
       .set({
         password: hashedPassword,
-        passwordResetToken: null,
-        passwordResetExpiry: null,
       })
-      .where(eq(usersTable.passwordResetToken, generateHashtoken(token)));
+      .where(eq(usersTable.id, checkToken.userId));
   } catch (err: unknown) {
     if (err instanceof Error) throw ApiError.internalError(err.message);
     throw ApiError.internalError(
       "Internal Error: Failed to reset the user password",
     );
   }
+};
+
+export const getCustomerTicketsService = async ({ id }: { id: string }) => {
+  return (await db
+      .select({
+        seatType: seatsTable.seatType,
+        seatName: seatsTable.seatName,
+        seatPrice: seatsTable.seatPrice,
+        showName: showsTable.showName,
+        showStart: showsTable.showStart,
+        showEnd: showsTable.showEnd,
+        showDuration: showsTable.showDuration,
+        createdAt: ticketTable.createdAt
+      })
+      .from(ticketTable)
+      .innerJoin(seatStatusTable, eq(seatStatusTable.userId, ticketTable.userId))
+      .innerJoin(seatsTable, eq(seatsTable.seatId, seatStatusTable.seatId))
+      .innerJoin(showsTable, eq(showsTable.showId, seatStatusTable.showId))
+      .where(eq(ticketTable.userId, id))).sort((a, b) => Number(a.createdAt) - Number(b.createdAt))
 };

@@ -9,7 +9,9 @@
     "dev": "tsc-watch --onSuccess \"node dist/server\"",
     "studio": "drizzle-kit studio",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down"
   },
   "keywords": [],
   "author": "",

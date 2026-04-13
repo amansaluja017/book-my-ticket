@@ -7,6 +7,11 @@ declare global {
         email: string;
         role: "customer"
       },
+      admin: {
+        id: string;
+        email: string;
+        role: "admin"
+      }
     }
   }
 }
