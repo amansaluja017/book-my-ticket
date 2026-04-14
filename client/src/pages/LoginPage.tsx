@@ -1,8 +1,10 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { useDispatch } from "react-redux";
 import { login } from "../slice/authSlice";
+import { useState } from "react";
+import PasswordInput from "../components/PasswordInput";
 
 interface loginFormData {
   email: string;
@@ -10,6 +12,7 @@ interface loginFormData {
 }
 
 function LoginPage() {
+  const [error, setError] = useState<string | undefined>(undefined);
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
@@ -29,7 +32,17 @@ function LoginPage() {
         navigate("/");
       }
     } catch (error: unknown) {
-      alert(error instanceof Error ? error.message : String(error));
+      if (error instanceof AxiosError) {
+        if (error.status === 401) {
+          setError("Email or password is incorrect");
+        } else if (error.status === 404) {
+          setError("User not found");
+        } else {
+          setError(error.message);
+        }
+      } else {
+        alert(error instanceof Error ? error.message : String(error));
+      }
     }
   };
 
@@ -53,27 +66,32 @@ function LoginPage() {
             />
           </label>
 
-          <label className="block">
-            <div className="flex justify-between">
-              <span className="text-sm text-slate-300">Password</span>
-              <Link
-                className="text-sm font-medium text-cyan-300 hover:text-cyan-200"
-                to="/forgot-password">
-                Forgot password?
-              </Link>
+          <div className="space-y-2">
+            <div className="">
+              <PasswordInput
+                label="Password"
+                placeholder="Enter your password"
+                register={register("password", { required: true })}
+              />
+              <div className="text-end mt-3">
+                <Link
+                  className="text-sm font-medium text-cyan-300 hover:text-cyan-200"
+                  to="/forgot-password"
+                >
+                  Forgot password?
+                </Link>
+              </div>
             </div>
-            <input
-              type="password"
-              required
-              className="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-950/90 px-4 py-3 text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20"
-              placeholder="Enter your password"
-              {...register("password", { required: true })}
-            />
-          </label>
+          </div>
+
+          {error && (
+            <p className="text-sm text-red-600 font-mono font-bold">{error}</p>
+          )}
 
           <button
             type="submit"
-            className="w-full rounded-2xl bg-cyan-500 px-4 py-3 text-base font-semibold text-slate-950 transition hover:bg-cyan-400">
+            className="w-full rounded-2xl bg-cyan-500 px-4 py-3 text-base font-semibold text-slate-950 transition hover:bg-cyan-400"
+          >
             Login
           </button>
         </form>
@@ -83,14 +101,16 @@ function LoginPage() {
             New here?{" "}
             <Link
               className="font-medium text-cyan-300 hover:text-cyan-200"
-              to="/register">
+              to="/register"
+            >
               Create an account
             </Link>
           </p>
 
           <Link
             className="font-medium text-sm text-red-600 hover:opacity-80 hover:underline"
-            to="/admin/login">
+            to="/admin/login"
+          >
             Admin login
           </Link>
         </div>

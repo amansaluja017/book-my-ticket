@@ -408,5 +408,5 @@ export const getCustomerTicketsService = async ({ id }: { id: string }) => {
     .innerJoin(seatsTable, eq(seatsTable.seatId, ticketTable.seatId))
     .where(eq(ticketTable.userId, id));
 
-  return tickets.sort((a, b) => Number(a.createdAt) - Number(b.createdAt));
+  return tickets.sort((a, b) => Number(b.createdAt) - Number(a.createdAt));
 };

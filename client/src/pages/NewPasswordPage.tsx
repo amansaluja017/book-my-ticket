@@ -1,6 +1,7 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { useForm } from 'react-hook-form';
+import PasswordInput from '../components/PasswordInput';
 
 function NewPasswordPage() {
   const navigate = useNavigate();
@@ -33,27 +34,17 @@ function NewPasswordPage() {
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit(submit)}>
-          <label className="block">
-            <span className="text-sm text-slate-300">New password</span>
-            <input
-              type="password"
-              required
-              className="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-950/90 px-4 py-3 text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20"
-              placeholder="Enter new password"
-              {...register('newPassword', { required: true })}
-            />
-          </label>
+          <PasswordInput
+            label="New password"
+            placeholder="Enter new password"
+            register={register('newPassword', { required: true })}
+          />
 
-          <label className="block">
-            <span className="text-sm text-slate-300">Confirm password</span>
-            <input
-              type="password"
-              required
-              className="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-950/90 px-4 py-3 text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20"
-              placeholder="Confirm new password"
-              {...register('confirmPassword', { required: true })}
-            />
-          </label>
+          <PasswordInput
+            label="Confirm password"
+            placeholder="Confirm new password"
+            register={register('confirmPassword', { required: true })}
+          />
 
           <button
             type="submit"

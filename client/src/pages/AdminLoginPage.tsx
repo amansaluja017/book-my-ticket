@@ -3,7 +3,8 @@ import { useState } from "react";
 import axios from "axios";
 import { useDispatch } from "react-redux";
 import { login } from "../slice/authSlice";
-import {useForm} from "react-hook-form";
+import { useForm } from "react-hook-form";
+import PasswordInput from "../components/PasswordInput";
 
 interface AdminLoginFormData {
   email: string;
@@ -74,16 +75,11 @@ function AdminLoginPage() {
             />
           </label>
 
-          <label className="block">
-            <span className="text-sm text-slate-300">Password</span>
-            <input
-              type="password"
-              required
-              className="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-950/90 px-4 py-3 text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20"
-              placeholder="Enter your password"
-                {...register("password", { required: true })}
-            />
-          </label>
+          <PasswordInput
+            label="Password"
+            placeholder="Enter your password"
+            register={register("password", { required: true })}
+          />
 
           <button
             type="submit"

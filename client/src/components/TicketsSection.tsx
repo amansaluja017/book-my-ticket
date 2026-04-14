@@ -15,7 +15,6 @@ interface TicketType {
   ticketId: string;
 }
 
-
 function TicketsSection() {
   const { userData: user } = useSelector((state: any) => state.user);
   
@@ -34,7 +33,6 @@ function TicketsSection() {
 
     fetchTickets();
   }, []);
-  
   
   return (
     <section className="rounded-[2rem] border border-slate-700 bg-slate-900/95 p-8 shadow-glow backdrop-blur-xl">
@@ -102,6 +100,5 @@ function TicketsSection() {
     </section>
   )
 }
-
 
 export default TicketsSection;

@@ -1,9 +1,18 @@
-import { and, asc } from "drizzle-orm";
+import { asc } from "drizzle-orm";
 import { db } from "../../db";
 import { screensTable, showsTable } from "../../db/schema";
 import { eq } from "drizzle-orm";
 import ApiError from "../../common/utils/api-error";
 import { sql } from "drizzle-orm";
+
+function calculateDuration(start: Date, end: Date): string {
+  const diffMs = end.getTime() - start.getTime();
+  
+  const hours = Math.floor(diffMs / (1000 * 60 * 60));
+  const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+  
+  return `${hours}:${minutes}`;
+};
 
 export const createShowService = async ({
   name,
@@ -35,7 +44,7 @@ export const createShowService = async ({
         screenId: screen.screenId,
         showStart: start,
         showEnd: end,
-        showDuration: String((Number(end) - Number(start)) / (1000 * 60 * 60)),
+        showDuration: calculateDuration(start, end),
         showGenre: genre,
       })
       .returning();
@@ -79,7 +88,7 @@ export const getShowsService = async ({
     .limit(limit - 0)
     .offset(limit * (page - 1))
     .orderBy(asc(showsTable.showStart));
-
+  
   if (!shows)
     throw ApiError.internalError(
       "Internal Error: Failed to fetch shows, try again later",

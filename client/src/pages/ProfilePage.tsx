@@ -5,7 +5,6 @@ import axios, { AxiosError } from "axios";
 import { Update } from "../slice/authSlice";
 import TicketsSection from "../components/TicketsSection";
 
-
 function ProfilePage() {
   const { userData: user } = useSelector((state: any) => state.user);
 
@@ -109,18 +108,6 @@ function ProfilePage() {
                 <p className="text-sm text-slate-500">Email</p>
                 <p className="mt-2 text-lg font-medium text-slate-100">
                   {user.email}
-                </p>
-              </div>
-              <div className="rounded-3xl bg-slate-950/80 p-5 text-slate-300">
-                <p className="text-sm text-slate-500">Location</p>
-                <p className="mt-2 text-lg font-medium text-slate-100">
-                  location
-                </p>
-              </div>
-              <div className="rounded-3xl bg-slate-950/80 p-5 text-slate-300">
-                <p className="text-sm text-slate-500">Member since</p>
-                <p className="mt-2 text-lg font-medium text-slate-100">
-                  not a member
                 </p>
               </div>
             </div>
