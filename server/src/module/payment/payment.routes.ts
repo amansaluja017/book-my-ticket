@@ -9,6 +9,7 @@ const router = express.Router();
 router.post(
   "/create",
   validate(paymentDto.CreatePaymentDto),
+  validateUserMiddleware,
   paymentController.createPayment,
 );
 

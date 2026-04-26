@@ -4,19 +4,6 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
-import { calculateDuration } from "../pages/HomePage";
-
-// interface TicketType {
-//   createdAt: string;
-//   seatName: string;
-//   seatPrice: number;
-//   seatType: string;
-//   showDuration: string;
-//   showEnd: string;
-//   showName: string;
-//   showStart: string;
-//   ticketId: string;
-// }
 
 interface BookingType {
   amount: number;
@@ -74,7 +61,7 @@ function BookingSection() {
       </div>
 
       <div className="mt-8 grid gap-4">
-        {ticketsData.map((booking) => (
+        {ticketsData.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map((booking) => (
           <div
             key={booking.paymentId}
             className="rounded-3xl border border-slate-700 bg-slate-950/80 p-6 shadow-sm"

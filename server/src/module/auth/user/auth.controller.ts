@@ -13,7 +13,12 @@ import {
   getCustomerTicketsService,
   uploadAvatarService,
   getCustomerBookingsService,
+  oauthTokenExchangeService,
 } from "./auth.service";
+import jwt, { JwtPayload } from "jsonwebtoken"
+import axios from "axios";
+
+type JwtPayloadWithNonce = JwtPayload & { nonce: string };
 
 export const registerCustomer = async (req: Request, res: Response) => {
   const user = await registerCustomerService(req.body);
@@ -57,6 +62,33 @@ export const loginCustomer = async (req: Request, res: Response) => {
       role: user.role,
       avatar: user.avatar,
     },
+    accessToken,
+  });
+};
+
+export const oauthTokenExchange = async (req: Request, res: Response) => {
+  const { code, nonce }: { code: string; nonce: string } = req.body;
+
+  if (!code) throw ApiError.badRequest("Authorization code is required");
+
+  const { idToken, accessToken, refreshToken } = await oauthTokenExchangeService(code);
+
+  if (!idToken) ApiError.internalError("Internal Error: Failed to login customer");
+
+  const decoded = jwt.decode(idToken, {complete: true}) as unknown as { payload: JwtPayloadWithNonce };
+
+  if (decoded.payload.nonce !== nonce) {
+    throw ApiError.unauthorized("Invalid nonce");
+  };
+
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+  });
+
+  ApiResponse.ok(res, "user login successfully", {
+    idToken,
     accessToken,
   });
 };
@@ -123,7 +155,7 @@ export const uploadAvatar = async (req: Request, res: Response) => {
 
 export const getCustomerTickets = async (req: Request<{ paymentId: string }>, res: Response) => {
   if (!req.params.paymentId) throw ApiError.badRequest("paymentId is required");
-  
+
   const tickets = await getCustomerTicketsService({ id: req.customer.id, paymentId: req.params.paymentId });
 
   ApiResponse.ok(res, "user tickets fetch successfully", tickets);

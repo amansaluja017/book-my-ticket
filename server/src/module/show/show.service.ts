@@ -74,7 +74,7 @@ export const getShowsAllService = async ({
     .innerJoin(screensTable, eq(showsTable.screenId, screensTable.screenId))
     .limit(limit - 0)
     .offset(limit * (page - 1))
-    .orderBy(asc(showsTable.showStart));
+    .orderBy(asc(showsTable.createdAt));
 
   if (!shows)
     throw ApiError.internalError(

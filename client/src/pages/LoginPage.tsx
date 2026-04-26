@@ -45,6 +45,19 @@ function LoginPage() {
     }
   };
 
+  async function handleOAuthLogin() {
+    const clientId = import.meta.env.VITE_CLIENT_ID;
+    const redirectUri = `http://localhost:5173/callback/oauth/login`;
+    const state = "EfgXYhPQUvVNASTpBX6PpCz8mgEuI8oLiW7NpbEi3rD"; // You should generate a random state for security
+    const nonce = "EfgXYhPQUvVNASTpBX6PpCz8mgEuI8oLiW7NpbEi3rD"; // You should generate a random nonce for security
+    const oauthUrl = `http://localhost:3001/o/authenticate?response_type=code&client_id=${clientId}&redirect_url=${encodeURIComponent(redirectUri)}&scope=openid profile email&state=${state}&&nonce=${nonce}`;
+
+    sessionStorage.setItem("oauth_state", state);
+    sessionStorage.setItem("oauth_nonce", nonce);
+
+    window.location.href = oauthUrl;
+  };
+
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-10">
       <section className="w-full max-w-md rounded-3xl border border-slate-700 bg-slate-900/90 p-8 shadow-glow backdrop-blur-xl">
@@ -94,6 +107,16 @@ function LoginPage() {
             Login
           </button>
         </form>
+
+        <div className="mt-5">
+          <button
+            type="button"
+            className="w-full rounded-2xl bg-cyan-500 px-4 py-3 text-base font-semibold text-slate-950 transition hover:bg-cyan-400"
+            onClick={() => handleOAuthLogin()}
+          >
+            Login with Our OAuth
+          </button>
+        </div>
 
         <div className="flex justify-around items-center mt-6">
           <p className="text-center text-sm text-slate-400">

@@ -17,6 +17,10 @@ router.post(
   validate(authDto.LoginDto),
   customerController.loginCustomer,
 );
+router.post(
+  "/o/token",
+  customerController.oauthTokenExchange,
+);
 router.post("/verify/:token", customerController.verifyCustomer);
 router.post(
   "/logout",

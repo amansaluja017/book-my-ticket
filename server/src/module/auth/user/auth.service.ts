@@ -25,6 +25,7 @@ import {
 import { and } from "drizzle-orm";
 import { gt } from "drizzle-orm";
 import { uploadImage } from "../../../common/utils/cloudinary.utils";
+import axios from "axios";
 
 interface RegisterCutomer {
   firstName: string;
@@ -187,6 +188,22 @@ export const loginCustomerService = async (
     throw ApiError.internalError("Internal Error: Failed to login user");
 
   return { user, accessToken, refreshToken };
+};
+
+export const oauthTokenExchangeService = async (code: string) => {
+
+  try {
+    const response = await axios.post("http://localhost:3001/o/token", {
+      code,
+      clientId: process.env.client_id,
+      clientSecret: process.env.client_secret,
+      grant_type: "authorization_code",
+      redirect_url: "http://localhost:5173/callback/oauth/login",
+    }, { withCredentials: true });
+    return response.data.data;
+  } catch (error) {
+    throw ApiError.internalError("Internal Error: Failed to exchange OAuth token");
+  }
 };
 
 export const logoutCustomerService = async (

@@ -34,7 +34,7 @@ export function verifyAccessToken(token: string) {
     return jwt.verify(token, process.env.JWT_ACCESSTOKEN_SECRET!);
   } catch (err: unknown) {
     if (err instanceof JsonWebTokenError) {
-      if ((err.name = "TokenExpiredError")) {
+      if ((err.name === "TokenExpiredError")) {
         throw ApiError.unauthorized("token is expired");
       } else {
         throw ApiError.badRequest("invalid token");
@@ -48,7 +48,7 @@ export function verifyRefreshToken(res: Response, token: string) {
     return jwt.verify(token, process.env.JWT_REFRESHTOKEN_SECRET!);
   } catch (err: unknown) {
     if (err instanceof JsonWebTokenError) {
-      if ((err.name = "TokenExpiredError")) {
+      if ((err.name === "TokenExpiredError")) {
         res.clearCookie("refreshToken");
         throw ApiError.badRequest("token is expired");
       } else {

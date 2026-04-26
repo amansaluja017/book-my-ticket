@@ -16,6 +16,7 @@ export interface ShowsTypes {
   showEnd: string;
   showName: string;
   showGenre: string;
+  createdAt: Date;
 }
 
 export function calculateDuration(start: Date, end: Date): string {
@@ -194,7 +195,7 @@ function HomePage() {
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="text-xs uppercase tracking-[0.3em] text-cyan-300">
-                        venue
+                        show
                       </p>
                       <h3 className="mt-3 text-xl font-semibold text-slate-100">
                         {show.showName}

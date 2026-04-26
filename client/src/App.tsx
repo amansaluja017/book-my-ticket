@@ -14,6 +14,7 @@ import AdminScreenShowsPage from './pages/AdminScreenShowsPage';
 import Protected from './components/Protected';
 import UserProtected from './components/UserProtected';
 import CustomerTicketsPage from './pages/CustomerTicketsPage';
+import CallbackLogin from './pages/CallbackLogin';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
         <Route path="/" element={<UserProtected><HomePage /></UserProtected>} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/callback/oauth/login" element={<CallbackLogin />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/verification/:token" element={<VerificationPage />} />
         <Route path="/reset-password/:token" element={<NewPasswordPage />} />

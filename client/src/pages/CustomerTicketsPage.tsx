@@ -44,7 +44,7 @@ function CustomerTicketsPage() {
   }, [paymentId]);
 
   return (
-    <section className="p-8">
+    <section className="p-10 flex justify-center items-center flex-col">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm uppercase tracking-[0.3em] text-cyan-300">
@@ -59,7 +59,7 @@ function CustomerTicketsPage() {
         </Link>
       </div>
 
-      <div className="mt-8 grid gap-4">
+      <div className="mt-8 grid gap-4 grid-cols-3">
         {ticketsData.map((ticket) => (
           <div
             key={ticket.ticketId}

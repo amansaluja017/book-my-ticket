@@ -25,6 +25,8 @@ const loadRazorpay = () => {
     script.onload = () => resolve(true);
     script.onerror = () => resolve(false);
     document.body.appendChild(script);
+    document.body.style.backgroundColor = "#000000"
+    console.log(document.body)
   });
 };
 
@@ -128,7 +130,7 @@ function RazarpayPayment() {
           email: "amansaluja017@gmail.com",
           contact: "9306234357",
         },
-        theme: { color: "#3399cc" },
+        theme: { color: "#010101" },
       };
 
       const razor = new (window as any).Razorpay(options);
@@ -139,8 +141,8 @@ function RazarpayPayment() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-md w-96">
+    <div className="min-h-screen flex items-center justify-center bg-[#010101]">
+      <div className="bg-slate-200 p-8 rounded-lg shadow-md w-96">
         <h2 className="text-2xl font-bold text-center mb-6 text-gray-800">
           Payment Details
         </h2>
